@@ -2,9 +2,9 @@
   "name": "reyespique-presupuestos",
   "version": "1.0.0",
   "description": "Sistema de Presupuestación — Servicio Técnico Reyes y Piqué SpA",
-  "main": "src/server.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "node server.js",
     "dev": "node src/server.js"
   },
   "dependencies": {
