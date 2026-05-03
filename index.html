@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Presupuesto STRP - Sistema APA</title>
+    <style>
+        :root { --primary: #0f3d64; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; line-height: 1.25; background: var(--bg); color: #333; margin: 0; }
+        .container { max-width: 950px; margin: 20px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .admin-panel { background: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 1px solid #ffeeba; }
+        .admin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .input-group { display: flex; flex-direction: column; margin-bottom: 10px; }
+        .input-group label { font-weight: bold; font-size: 11px; color: var(--primary); margin-bottom: 4px; }
+        input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: var(--primary); color: white; padding: 10px; text-align: left; font-size: 13px; }
+        td { padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; }
+        
+        .resumen-eco { float: right; width: 320px; margin-top: 20px; border: 1px solid #ddd; padding: 15px; border-radius: 4px; background: #fafafa; }
+        .resumen-line { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; }
+        .total-bold { font-weight: bold; font-size: 16px; border-top: 2px solid #000; padding-top: 8px; margin-top: 8px; }
+
+        @media print {
+            @page { size: letter; margin: 1in; }
+            .no-print { display: none !important; }
+            body { font-family: "Times New Roman", serif; font-size: 12pt; line-height: 2.0; background: white; }
+            .container { box-shadow: none; width: 100%; padding: 0; }
+            table { border-top: 2px solid #000; border-bottom: 2px solid #000; line-height: 1.5; }
+            th { background: none; color: #000; border-bottom: 1px solid #000; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="admin-panel no-print">
+        <h3 style="margin-top:0; font-size: 13px;">⚙️ CONFIGURACIÓN DE MÁRGENES (CONFIDENCIAL)</h3>
+        <div class="admin-grid">
+            <div class="input-group"><label>Valor HE ($):</label><input type="number" id="cfg-he" value="34000" onchange="recalc()"></div>
+            <div class="input-group"><label>% Margen Materiales:</label><input type="number" id="cfg-m-mat" value="45" onchange="recalc()"></div>
+            <div class="input-group"><label>% Margen Subcontratos:</label><input type="number" id="cfg-m-sub" value="35" onchange="recalc()"></div>
+            <div class="input-group"><label>% Gastos Generales (GG):</label><input type="number" id="cfg-gg" value="12" onchange="recalc()"></div>
+            <div class="input-group"><label>% Imprevistos (IMP):</label><input type="number" id="cfg-imp" value="5" onchange="recalc()"></div>
+            <div class="input-group"><label>% Utilidad:</label><input type="number" id="cfg-util" value="13" onchange="recalc()"></div>
+        </div>
+    </div>
+
+    <div style="text-align:center; margin-bottom: 30px;">
+        <strong>SERVICIO TÉCNICO REYES Y PIQUÉ SPA</strong><br>
+        RUT: 76.602.175-1 | Contratista de molinos de trigo<br>
+        Obispo Vásquez Valencia 3104, Cerrillos | Email: mrwebar@gmail.com
+    </div>
+
+    <table>
+        <thead>
+            <tr><th>Descripción</th><th>Cant.</th><th>Unid.</th><th style="text-align:right">Total (CLP)</th></tr>
+        </thead>
+        <tbody id="lista-items">
+            </tbody>
+    </table>
+
+    <div class="resumen-eco">
+        <div class="resumen-line"><span>Costo Directo (MO+Mat+Sub):</span><span id="res-cd">$0</span></div>
+        <div class="resumen-line"><span>Gastos Generales (<span id="txt-gg">12</span>%):</span><span id="res-gg">$0</span></div>
+        <div class="resumen-line"><span>Imprevistos (<span id="txt-imp">5</span>%):</span><span id="res-imp">$0</span></div>
+        <div class="resumen-line"><span>Utilidad (<span id="txt-util">13</span>%):</span><span id="res-util">$0</span></div>
+        <div class="resumen-line" style="margin-top:5px; border-top:1px solid #ccc;"><span>Subtotal Neto:</span><span id="res-neto">$0</span></div>
+        <div class="resumen-line"><span>IVA (19%):</span><span id="res-iva">$0</span></div>
+        <div class="resumen-line total-bold"><span>TOTAL:</span><span id="res-total">$0</span></div>
+    </div>
+
+    <div style="clear:both;"></div>
+    <button class="no-print" style="width:100%; margin-top:20px; padding:10px; background:#333; color:white; border:none; cursor:pointer;" onclick="window.print()">🖨️ Imprimir Presupuesto (Formato APA)</button>
+</div>
+
+<script>
+    let items = []; // En una versión completa, aquí añadirías ítems con un botón 
+    const fmt = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' });
+
+    function recalc() {
+        const vHE = parseFloat(document.getElementById('cfg-he').value);
+        const pMat = 1 + (parseFloat(document.getElementById('cfg-m-mat').value)/100);
+        const pSub = 1 + (parseFloat(document.getElementById('cfg-m-sub').value)/100);
+        const pGG = parseFloat(document.getElementById('cfg-gg').value)/100;
+        const pIMP = parseFloat(document.getElementById('cfg-imp').value)/100;
+        const pUTIL = parseFloat(document.getElementById('cfg-util').value)/100;
+
+        // 1. Calcular Costo Directo (Ejemplo con cargo fijo 1 HE) [cite: 30, 270]
+        let costoDirecto = vHE; 
+        
+        // 2. Aplicar Porcentajes Independientes sobre Costo Directo 
+        const gg = costoDirecto * pGG;
+        const imp = costoDirecto * pIMP;
+        const util = costoDirecto * pUTIL;
+        
+        const neto = costoDirecto + gg + imp + util;
+        const iva = neto * 0.19;
+
+        // Actualizar Interfaz
+        document.getElementById('res-cd').innerText = fmt.format(costoDirecto);
+        document.getElementById('res-gg').innerText = fmt.format(gg);
+        document.getElementById('res-imp').innerText = fmt.format(imp);
+        document.getElementById('res-util').innerText = fmt.format(util);
+        document.getElementById('res-neto').innerText = fmt.format(neto);
+        document.getElementById('res-iva').innerText = fmt.format(iva);
+        document.getElementById('res-total').innerText = fmt.format(neto + iva);
+        
+        // Texto de porcentajes
+        document.getElementById('txt-gg').innerText = document.getElementById('cfg-gg').value;
+        document.getElementById('txt-imp').innerText = document.getElementById('cfg-imp').value;
+        document.getElementById('txt-util').innerText = document.getElementById('cfg-util').value;
+
+        const tbody = document.getElementById('lista-items');
+        tbody.innerHTML = `<tr><td>Cargo base por atención técnica (1 HE)</td><td>1</td><td>HE</td><td style="text-align:right">${fmt.format(vHE)}</td></tr>`;
+    }
+    
+    window.onload = recalc;
+</script>
+</body>
+</html>
