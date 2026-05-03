@@ -1,0 +1,60 @@
+const express = require('express');
+const initSqlJs = require('sql.js');
+const fs = require('fs');
+const path = require('path');
+
+const app = express();
+app.use(express.json());
+app.use(express.static(path.join(__dirname))); 
+
+const DB_FILE = path.join(__dirname, 'database.sqlite');
+let db;
+
+async function initDB() {
+    try {
+        const SQL = await initSqlJs();
+        db = new SQL.Database(fs.existsSync(DB_FILE) ? fs.readFileSync(DB_FILE) : undefined);
+
+        // Tablas base
+        db.run(`CREATE TABLE IF NOT EXISTS config (clave TEXT PRIMARY KEY, valor TEXT);`);
+        db.run(`CREATE TABLE IF NOT EXISTS clientes (id INTEGER PRIMARY KEY AUTOINCREMENT, razon TEXT, planta TEXT, contacto TEXT);`);
+        
+        // Configuración inicial: Correlativo STRP-2026-3000 y porcentajes
+        const configCheck = db.exec("SELECT COUNT(*) FROM config")[0].values[0][0];
+        if (configCheck === 0) {
+            db.run(`INSERT INTO config (clave, valor) VALUES 
+                ('correlativo', '3000'),
+                ('p_gg', '12'),
+                ('p_imp', '5'),
+                ('p_util', '13'),
+                ('m_mat', '45'),
+                ('m_sub', '35');`);
+        }
+
+        // Clientes iniciales
+        const clientCheck = db.exec("SELECT COUNT(*) FROM clientes")[0].values[0][0];
+        if (clientCheck === 0) {
+            db.run(`INSERT INTO clientes (razon, planta, contacto) VALUES 
+                ('Compañía Molinera San Cristóbal S.A.', 'Planta Santiago', 'Sr. Williams Moya'),
+                ('Compañía Molinera San Cristóbal S.A.', 'Planta Maipú', 'Sr. Luis Gómez'),
+                ('Compañía Molinera San Cristóbal S.A.', 'Planta Casablanca', 'Sr. Cristian Mora del Prado');`);
+        }
+        
+        fs.writeFileSync(DB_FILE, Buffer.from(db.export()));
+    } catch (e) { console.error("Error BD:", e); }
+}
+
+app.get('/api/clientes', (req, res) => {
+    const r = db.exec("SELECT * FROM clientes ORDER BY razon ASC");
+    res.json(r.length ? r[0].values.map(v => ({ id: v[0], razon: v[1], planta: v[2], contacto: v[3] })) : []);
+});
+
+app.post('/api/clientes', (req, res) => {
+    const { razon, planta, contacto } = req.body;
+    db.run("INSERT OR REPLACE INTO clientes (razon, planta, contacto) VALUES (?, ?, ?)", [razon, planta, contacto]);
+    fs.writeFileSync(DB_FILE, Buffer.from(db.export()));
+    res.json({ success: true });
+});
+
+const PORT = process.env.PORT || 3000;
+initDB().then(() => app.listen(PORT, () => console.log("STRP SpA Online")));
