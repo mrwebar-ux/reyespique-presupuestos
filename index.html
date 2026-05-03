@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Generador Profesional STRP SpA</title>
+    <style>
+        :root { --main-blue: #0f3d64; --light-blue: #e3f2fd; --text-blue: #0d47a1; --accent: #d32f2f; }
+        body { font-family: 'Calibri', 'Candara', sans-serif; margin: 0; background: #f4f7f9; color: #333; }
+        #btn-float-back { display: none; position: fixed; top: 20px; left: 20px; z-index: 10000; background: var(--accent); color: white; padding: 12px 24px; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .container { max-width: 1050px; margin: 30px auto; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); overflow: hidden; }
+        .editor-container { padding: 30px; background: #fff; border-bottom: 2px solid #eee; }
+        .panel-conf { background: #fffde7; padding: 20px; border-radius: 8px; border: 1px solid #fff59d; margin-bottom: 20px; }
+        .grid-inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .input-group { display: flex; flex-direction: column; margin-bottom: 12px; }
+        .input-group label { font-weight: bold; font-size: 11px; color: var(--main-blue); text-transform: uppercase; margin-bottom: 5px; }
+        input, select, textarea { padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; font-family: inherit; }
+
+        /* Estilo Documento Final */
+        .pdf-content { padding: 50px; background: white; }
+        .pdf-header { background: var(--main-blue); color: white; padding: 35px 45px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .pdf-title { font-size: 24pt; font-weight: bold; text-transform: uppercase; }
+        
+        .id-table { width: 100%; border-collapse: collapse; margin: 25px 0; border: 2.5px solid var(--text-blue); }
+        .id-table td { border: 1px solid var(--text-blue); padding: 10px; font-size: 11pt; color: var(--text-blue); }
+        .id-table td:first-child { background: var(--light-blue); font-weight: bold; width: 24%; }
+
+        .section-title { background: var(--light-blue); padding: 10px 15px; font-weight: bold; border-left: 6px solid var(--main-blue); margin: 35px 0 15px 0; color: var(--text-blue); text-transform: uppercase; font-size: 12.5pt; }
+        table.items-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .items-table th { border-bottom: 3px solid var(--main-blue); padding: 12px; font-size: 11pt; text-align: left; color: var(--text-blue); background: var(--light-blue); }
+        .items-table td { border-bottom: 1px solid #eee; padding: 12px; font-size: 11pt; }
+
+        .summary-box { float: right; width: 45%; background: var(--light-blue); padding: 22px; border-radius: 12px; border: 1.5px solid var(--text-blue); margin-top: 25px; }
+        .summary-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 11pt; color: var(--text-blue); }
+        .total-row { border-top: 2px solid var(--main-blue); margin-top: 10px; padding-top: 12px; font-weight: bold; font-size: 15pt; }
+
+        .signature-section { margin-top: 90px; text-align: center; color: var(--text-blue); }
+        .sig-line { width: 280px; height: 1.5px; background: var(--text-blue); margin: 0 auto 12px auto; }
+
+        .preview-mode #btn-float-back { display: block; }
+        .preview-mode .no-print { display: none !important; }
+        .preview-mode .container { box-shadow: none; width: 100%; margin: 0; border-radius: 0; }
+    </style>
+</head>
+<body>
+
+<button id="btn-float-back" onclick="setMode(false)">⬅️ VOLVER AL EDITOR</button>
+
+<div class="container">
+    <div class="editor-container no-print">
+        <div class="panel-conf">
+            <h3 style="margin:0 0 10px 0; font-size:14px;">⚙️ CONFIGURACIÓN DE MÁRGENES</h3>
+            <div class="grid-inputs">
+                <div class="input-group"><label>% GG:</label><input type="number" id="c-gg" value="12" oninput="recalc()"></div>
+                <div class="input-group"><label>% Imp:</label><input type="number" id="c-imp" value="5" oninput="recalc()"></div>
+                <div class="input-group"><label>% Util:</label><input type="number" id="c-util" value="13" oninput="recalc()"></div>
+                <div class="input-group"><label>% Margen Mat:</label><input type="number" id="c-m-mat" value="45" oninput="recalc()"></div>
+                <div class="input-group"><label>% Margen Sub:</label><input type="number" id="c-m-sub" value="35" oninput="recalc()"></div>
+                <div class="input-group"><label>Valor HE ($):</label><input type="number" id="c-he" value="34000" oninput="recalc()"></div>
+            </div>
+        </div>
+
+        <h3>📋 DATOS DEL PROYECTO</h3>
+        <div class="grid-inputs" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="input-group"><label>N° Presupuesto:</label><input type="text" id="i-num" readonly></div>
+            <div class="input-group"><label>Fecha Emisión:</label><input type="date" id="i-fecha" oninput="sync()"></div>
+            <div class="input-group"><label>Vigencia:</label><input type="text" id="i-vig" value="15 días corridos" oninput="sync()"></div>
+            <div class="input-group"><label>Proyecto:</label><input type="text" id="i-proy" oninput="sync()"></div>
+            <div class="input-group"><label>Ubicación:</label><input type="text" id="i-ubic" oninput="sync()"></div>
+            <div class="input-group"><label>Plazo Estimado:</label><input type="text" id="i-plazo" value="Según coordinación con Mantención" oninput="sync()"></div>
+            <div class="input-group"><label>Cliente:</label><input type="text" id="i-cli" oninput="sync()"></div>
+            <div class="input-group"><label>Atención:</label><input type="text" id="i-ate" oninput="sync()"></div>
+            <div class="input-group"><label>Cargar de BD:</label><select id="s-db" onchange="loadC(this.value)"><option value="">-- Seleccionar --</option></select></div>
+            <div class="input-group" style="grid-column: span 3;"><label>Alcance Técnico:</label><textarea id="i-alc" rows="3" oninput="sync()">El presente presupuesto contempla...</textarea></div>
+            <div class="input-group" style="grid-column: span 3;"><label>Notas y Exclusiones:</label><textarea id="i-notas" rows="3" oninput="sync()">1. Los trabajos se ejecutarán según coordinación con Mantención.</textarea></div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px;">
+            <button onclick="saveBudget()" style="padding:14px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">💾 GUARDAR FOLIO</button>
+            <button onclick="setMode(true)" style="padding:14px; background:var(--main-blue); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">👁️ VISTA PREVIA</button>
+            <button onclick="exportToWord()" style="padding:14px; background:#2b5797; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">📝 DESCARGAR WORD</button>
+            <button onclick="window.open('https://drive.google.com/drive/folders/1hdGCJUUcxc3h8iJrYVPqvRf7EktG5t3Z', '_blank')" style="padding:14px; background:#4285f4; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">📂 ABRIR DRIVE</button>
+        </div>
+    </div>
+
+    <div id="word-document" class="pdf-content">
+        <div class="pdf-header">
+            <div class="header-left">
+                <div style="font-weight:bold; font-size:17pt;">SERVICIO TÉCNICO REYES Y PIQUÉ SPA</div>
+                <div style="font-size:11pt; margin-top:4px;">Contratista de Molinos de Trigo - RUT: 76.602.175-1</div>
+                <div style="font-size:10pt;">Obispo Vásquez Valencia 3104, Cerrillos, Santiago</div>
+            </div>
+            <div class="header-right">
+                <div class="pdf-title">PRESUPUESTO TÉCNICO</div>
+                <div style="font-weight:bold; font-size:13pt; margin-top:6px;">Folio: <span id="o-num">---</span></div>
+                <div id="o-fec-top" style="font-size:11pt; margin-top:4px;">---</div>
+            </div>
+        </div>
+        <table class="id-table">
+            <tr><td>Proyecto:</td><td id="o-proy">---</td></tr>
+            <tr><td>Cliente:</td><td id="o-cli">---</td></tr>
+            <tr><td>Atención:</td><td id="o-ate">---</td></tr>
+            <tr><td>Ubicación:</td><td id="o-ubic">---</td></tr>
+            <tr><td>Vigencia:</td><td id="o-vig">---</td></tr>
+            <tr><td>Plazo Estimado:</td><td id="o-plazo">---</td></tr>
+        </table>
+        <div class="section-title">1. Alcance de los Trabajos</div>
+        <div style="font-size:11.5pt; text-align:justify; line-height:1.6; color:var(--text-blue);" id="o-alc">---</div>
+        <div class="section-title">2. Detalle Técnico Económico</div>
+        <table class="items-table"><thead><tr><th>#</th><th>Descripción</th><th style="text-align:center">Cant.</th><th style="text-align:center">Unid.</th><th style="text-align:right">Total (CLP)</th></tr></thead><tbody id="l-items"></tbody></table>
+        <div class="no-print" style="margin-top:20px; padding:20px; background:#eef2f5; display:flex; gap:10px; border-radius:8px;">
+            <input type="text" id="n-desc" placeholder="Descripción..." style="flex:2"><select id="n-tipo" style="flex:1"><option value="mo">Mano de Obra</option><option value="mat">Materiales</option><option value="sub">Subcontratos</option></select>
+            <input type="number" id="n-can" value="1" style="width:70px"><input type="number" id="n-cos" placeholder="$ Neto" style="width:120px">
+            <button onclick="addI()" style="background:var(--main-blue); color: white; border:none; padding:10px 20px; cursor:pointer; font-weight:bold; border-radius:6px;">+ AÑADIR</button>
+        </div>
+        <div class="section-title">3. Resumen Económico</div>
+        <div class="summary-box">
+            <div class="summary-row"><span>Costo Directo Total</span><span id="o-cd">$0</span></div>
+            <div class="summary-row"><span>Gastos Generales (12%)</span><span id="o-gg">$0</span></div>
+            <div class="summary-row"><span>Imprevistos (5%)</span><span id="o-imp">$0</span></div>
+            <div class="summary-row"><span>Utilidad (13%)</span><span id="o-util">$0</span></div>
+            <div class="summary-row" style="border-top:1.5px solid var(--text-blue); padding-top: 10px; margin-top: 5px;"><span>Subtotal Neto</span><span id="o-tot">$0</span></div>
+            <div class="summary-row"><span>IVA (19%)</span><span id="o-iva">$0</span></div>
+            <div class="summary-row total-row"><span>TOTAL PRESUPUESTO</span><span id="o-final">$0</span></div>
+        </div>
+        <div style="clear:both;"></div>
+        <div class="section-title">4. Notas y Exclusiones</div>
+        <div style="font-size:11pt; white-space:pre-line; line-height:1.5; color:var(--text-blue);" id="o-notas">---</div>
+        <div class="signature-section"><div class="sig-line"></div><strong>Manuel Orlando Reyes Webar</strong><br>Servicio Técnico Reyes y Piqué SpA<br>mrwebar@gmail.com</div>
+    </div>
+</div>
+
+<script>
+    let items = [], DB_C = [];
+    const fmt = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' });
+    document.getElementById('i-fecha').valueAsDate = new Date();
+
+    async function init() {
+        try {
+            const rConf = await fetch('/api/config');
+            const config = await rConf.json();
+            document.getElementById('i-num').value = 'STRP-2026-' + config.correlativo;
+            const rCli = await fetch('/api/clientes');
+            DB_C = await rCli.json();
+            const s = document.getElementById('s-db');
+            s.innerHTML = '<option value="">-- Seleccionar --</option>' + DB_C.map((c,i)=>`<option value="${i}">${c.razon} (${c.planta})</option>`).join('');
+            sync(); recalc();
+        } catch(e) {}
+    }
+
+    async function saveBudget() {
+        const res = await fetch('/api/incrementar-folio', { method: 'POST' });
+        const data = await res.json();
+        if(data.success) { alert("✅ Folio avanzado al Nº " + data.nextFolio); init(); }
+    }
+
+    function exportToWord() {
+        const content = document.getElementById('word-document').innerHTML;
+        // Se inyectan estilos CSS específicos dentro del HTML para que Word mantenga los colores celestes y azules
+        const styles = `
+            <style>
+                body { font-family: Calibri, sans-serif; }
+                .pdf-header { background-color: #0f3d64; color: white; padding: 20px; }
+                .id-table { border: 2pt solid #0d47a1; width: 100%; border-collapse: collapse; }
+                .id-table td { border: 1pt solid #0d47a1; padding: 5pt; color: #0d47a1; }
+                .section-title { background-color: #e3f2fd; color: #0d47a1; padding: 5pt; font-weight: bold; border-left: 4pt solid #0f3d64; }
+                .items-table th { background-color: #e3f2fd; color: #0d47a1; border-bottom: 2pt solid #0f3d64; }
+                .summary-box { background-color: #e3f2fd; border: 1pt solid #0d47a1; padding: 10pt; }
+            </style>
+        `;
+        const html = `<html><head><meta charset='utf-8'>${styles}</head><body>${content}</body></html>`;
+        const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = 'Presupuesto_' + document.getElementById('o-num').innerText + '.doc';
+        link.click();
+    }
+
+    function loadC(i) {
+        if(i==="") return;
+        const c = DB_C[i];
+        document.getElementById('i-cli').value = c.razon;
+        document.getElementById('i-ate').value = c.contacto;
+        document.getElementById('i-ubic').value = c.planta;
+        sync();
+    }
+
+    function sync() {
+        document.getElementById('o-num').innerText = document.getElementById('i-num').value;
+        document.getElementById('o-proy').innerText = document.getElementById('i-proy').value || "---";
+        document.getElementById('o-cli').innerText = document.getElementById('i-cli').value || "---";
+        document.getElementById('o-ate').innerText = document.getElementById('i-ate').value || "---";
+        document.getElementById('o-ubic').innerText = document.getElementById('i-ubic').value || "---";
+        document.getElementById('o-vig').innerText = document.getElementById('i-vig').value || "---";
+        document.getElementById('o-plazo').innerText = document.getElementById('i-plazo').value || "---";
+        document.getElementById('o-alc').innerText = document.getElementById('i-alc').value || "---";
+        document.getElementById('o-notas').innerText = document.getElementById('i-notas').value || "---";
+        const f = document.getElementById('i-fecha').value;
+        if(f) document.getElementById('o-fec-top').innerText = new Date(f).toLocaleDateString('es-CL', {day:'numeric', month:'long', year:'numeric'});
+    }
+
+    function addI() {
+        const desc = document.getElementById('n-desc').value;
+        if(!desc) return;
+        items.push({ desc, tipo: document.getElementById('n-tipo').value, cant: parseFloat(document.getElementById('n-can').value)||1, costo: parseFloat(document.getElementById('n-cos').value)||0 });
+        document.getElementById('n-desc').value = ""; recalc();
+    }
+
+    function recalc() {
+        const valHE = parseFloat(document.getElementById('c-he').value);
+        const mMat = 1 + (parseFloat(document.getElementById('c-m-mat').value)/100);
+        const mSub = 1 + (parseFloat(document.getElementById('c-m-sub').value)/100);
+        const pGG = parseFloat(document.getElementById('c-gg').value)/100, pImp = parseFloat(document.getElementById('c-imp').value)/100, pUtil = parseFloat(document.getElementById('c-util').value)/100;
+        let cd = 0;
+        const tb = document.getElementById('l-items');
+        tb.innerHTML = "";
+        items.forEach((it, i) => {
+            let totalItem = (it.tipo==='mo') ? it.cant * valHE : (it.tipo==='mat' ? it.cant * it.costo * mMat : it.cant * it.costo * mSub);
+            cd += totalItem;
+            tb.innerHTML += `<tr><td>${i+1}</td><td>${it.desc} <span class="no-print" onclick="items.splice(${i},1);recalc()" style="color:red;cursor:pointer;font-size:10px;margin-left:10px;">[X]</span></td><td style="text-align:center">${it.cant}</td><td style="text-align:center">${it.tipo==='mo'?'HE':(it.tipo==='mat'?'un.':'Gl.')}</td><td style="text-align:right">${fmt.format(totalItem)}</td></tr>`;
+        });
+        const gg = cd * pGG, imp = cd * pImp, util = cd * pUtil, neto = cd + gg + imp + util, iva = neto * 0.19;
+        document.getElementById('o-cd').innerText = fmt.format(cd);
+        document.getElementById('o-gg').innerText = fmt.format(gg);
+        document.getElementById('o-imp').innerText = fmt.format(imp);
+        document.getElementById('o-util').innerText = fmt.format(util);
+        document.getElementById('o-tot').innerText = fmt.format(neto);
+        document.getElementById('o-iva').innerText = fmt.format(iva);
+        document.getElementById('o-final').innerText = fmt.format(neto + iva);
+    }
+
+    function setMode(isPreview) {
+        if(isPreview) document.body.classList.add('preview-mode');
+        else document.body.classList.remove('preview-mode');
+        window.scrollTo(0,0);
+    }
+    window.onload = init;
+</script>
+</body>
+</html>
