@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Generador de Presupuestos STRP SpA</title>
+    <style>
+        /* --- ESTILOS DE INTERFAZ (PANTALLA) --- */
+        :root { --primary: #0f3d64; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: #333; }
+        .container { max-width: 950px; margin: 20px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+        
+        .panel { background: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ffeeba; }
+        .editor-section { background: #f0f0f0; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+        .grid-inputs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 15px; }
+        .input-group { display: flex; flex-direction: column; }
+        .input-group label { font-weight: bold; font-size: 11px; color: var(--primary); margin-bottom: 4px; }
+        input, select { padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; }
+
+        /* Estilos Tabla APA */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: var(--primary); color: white; padding: 12px; text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid #eee; }
+        
+        .resumen-eco { float: right; width: 350px; margin-top: 20px; padding: 15px; border: 1px solid #ddd; background: #fafafa; }
+        .resumen-eco div { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px; }
+        .total-bold { font-weight: bold; font-size: 18px; border-top: 2px solid #000; padding-top: 10px; }
+
+        /* --- ESTILOS DE IMPRESIÓN Y VISTA PREVIA (APA) --- */
+        @media print {
+            @page { size: letter; margin: 1in; }
+            .no-print { display: none !important; }
+            body { background: white; font-family: "Times New Roman", serif; font-size: 12pt; line-height: 2.0; color: #000; }
+            .container { box-shadow: none; width: 100%; padding: 0; }
+            table { border-top: 2px solid #000; border-bottom: 2px solid #000; line-height: 1.5; }
+            th { background: none; color: #000; border-bottom: 1px solid #000; font-weight: bold; }
+            .resumen-eco { border: none; width: 60%; background: none; }
+            .signature-box { margin-top: 60pt; text-align: center; line-height: 1.2; display: block !important; }
+        }
+        
+        .signature-box { display: none; text-align: center; margin-top: 40px; }
+        .preview-mode .no-print:not(.btn-print) { display: none !important; }
+        .preview-mode .container { box-shadow: none; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="main-container">
+    <div class="panel no-print">
+        <h3 style="margin-top:0; font-size: 14px;">⚙️ CONFIGURACIÓN DE MÁRGENES (CONFIDENCIAL)</h3>
+        <div class="grid-inputs" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="input-group"><label>Valor HE ($):</label><input type="number" id="cfg-he" value="34000" oninput="recalc()"></div>
+            <div class="input-group"><label>% Mat (Margen):</label><input type="number" id="cfg-m-mat" value="45" oninput="recalc()"></div>
+            <div class="input-group"><label>% Sub (Margen):</label><input type="number" id="cfg-m-sub" value="35" oninput="recalc()"></div>
+            <div class="input-group"><label>% GG:</label><input type="number" id="cfg-gg" value="12" oninput="recalc()"></div>
+            <div class="input-group"><label>% Imprevistos:</label><input type="number" id="cfg-imp" value="5" oninput="recalc()"></div>
+            <div class="input-group"><label>% Utilidad:</label><input type="number" id="cfg-util" value="13" oninput="recalc()"></div>
+        </div>
+    </div>
+
+    <div class="editor-section no-print">
+        <h3 style="margin-top:0;">1. DATOS DEL CLIENTE Y FECHA</h3>
+        <div class="grid-inputs">
+            <div class="input-group"><label>CLIENTE:</label><input type="text" id="in-cliente" placeholder="Ej: Compañía Molinera" oninput="sync()"></div>
+            <div class="input-group"><label>ATENCIÓN:</label><input type="text" id="in-atencion" placeholder="Ej: Sr. Williams Moya" oninput="sync()"></div>
+            <div class="input-group"><label>FECHA (Calendario):</label><input type="date" id="in-fecha" oninput="sync()"></div>
+            <div class="input-group"><label>VALIDEZ DE OFERTA:</label><input type="text" id="in-validez" value="15 días corridos" oninput="sync()"></div>
+        </div>
+    </div>
+
+    <div style="text-align:center; border-bottom: 1px solid #000; padding-bottom: 15px; margin-bottom: 30px;">
+        <h2 style="margin:0;">SERVICIO TÉCNICO REYES Y PIQUÉ SPA</h2>
+        <p style="margin:5px; font-size:12px;">RUT: 76.602.175-1 | Contratista de molinos de trigo<br>
+        Obispo Vásquez Valencia 3104, Cerrillos | Email: mrwebar@gmail.com | +56 9 94577868</p>
+    </div>
+
+    <div style="margin-bottom: 24pt; line-height: 1.5;">
+        <strong>PRESUPUESTO:</strong> STRP-3001<br>
+        <strong>CLIENTE:</strong> <span id="out-cliente">---</span><br>
+        <strong>ATENCIÓN:</strong> <span id="out-atencion">---</span><br>
+        <strong>FECHA:</strong> <span id="out-fecha">---</span><br>
+        <strong>VALIDEZ:</strong> <span id="out-validez">15 días corridos</span>
+    </div>
+
+    <table>
+        <thead>
+            <tr><th style="width:55%">Descripción</th><th style="text-align:center">Cant.</th><th style="text-align:center">Unid.</th><th style="text-align:right">Total (CLP)</th></tr>
+        </thead>
+        <tbody id="lista-items">
+            <tr><td>Cargo base por atención técnica (1 HE)</td><td style="text-align:center">1</td><td style="text-align:center">HE</td><td style="text-align:right" id="val-fijo">$34.000</td></tr>
+        </tbody>
+    </table>
+
+    <div class="no-print" style="margin-top:15px; padding:15px; background:#ddd; display:flex; gap:10px; border-radius:5px;">
+        <input type="text" id="new-desc" placeholder="Descripción Trabajo..." style="flex:2">
+        <select id="new-tipo" style="flex:1">
+            <option value="mo">Mano de Obra (HE)</option>
+            <option value="mat">Material (Neto)</option>
+            <option value="sub">Subcontrato (Neto)</option>
+        </select>
+        <input type="number" id="new-cant" value="1" style="width:60px">
+        <input type="number" id="new-costo" placeholder="$ Neto" style="width:100px">
+        <button onclick="addItem()" style="background:green; color:white; border:none; padding:10px 20px; cursor:pointer; font-weight:bold;">+ Añadir</button>
+    </div>
+
+    <div class="resumen-eco">
+        <div><span>Costo Directo (C.D.):</span><span id="res-cd">$0</span></div>
+        <div><span>Gastos Generales:</span><span id="res-gg">$0</span></div>
+        <div><span>Imprevistos:</span><span id="res-imp">$0</span></div>
+        <div><span>Utilidad:</span><span id="res-util">$0</span></div>
+        <div style="border-top:1px solid #ccc; padding-top:10px; margin-top:10px;"><span>Subtotal Neto:</span><span id="res-neto">$0</span></div>
+        <div><span>IVA (19%):</span><span id="res-iva">$0</span></div>
+        <div class="total-bold"><span>TOTAL:</span><span id="res-total">$0</span></div>
+    </div>
+
+    <div style="clear:both"></div>
+
+    <div class="signature-box">
+        <div style="width: 200px; border-top: 1px solid #000; margin: 0 auto 5pt auto;"></div>
+        <strong>Manuel Reyes Webar</strong><br>
+        Ingeniero en Electricidad y Electrónica<br>
+        Instalador Autorizado SEC Clase A
+    </div>
+
+    <div style="margin-top:40px; display:flex; gap:10px;" class="no-print">
+        <button onclick="togglePreview()" style="flex:1; padding:15px; background:#666; color:white; font-weight:bold; cursor:pointer; border:none; border-radius:5px;">👁️ Vista Previa (Alternar)</button>
+        <button onclick="window.print()" class="btn-print" style="flex:1; padding:15px; background:#333; color:white; font-weight:bold; cursor:pointer; border:none; border-radius:5px;">🖨️ Imprimir / Guardar PDF (APA)</button>
+    </div>
+</div>
+
+<script>
+    let items = [];
+    const fmt = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' });
+
+    // Cargar fecha de hoy por defecto en el calendario
+    document.getElementById('in-fecha').valueAsDate = new Date();
+    
+    function sync() {
+        document.getElementById('out-cliente').innerText = document.getElementById('in-cliente').value || "---";
+        document.getElementById('out-atencion').innerText = document.getElementById('in-atencion').value || "---";
+        document.getElementById('out-validez').innerText = document.getElementById('in-validez').value || "---";
+        
+        const fecha = document.getElementById('in-fecha').value;
+        if(fecha) {
+            const d = new Date(fecha);
+            document.getElementById('out-fecha').innerText = d.toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+    }
+
+    function addItem() {
+        const desc = document.getElementById('new-desc').value;
+        if(!desc) return;
+        items.push({
+            desc, 
+            tipo: document.getElementById('new-tipo').value, 
+            cant: parseFloat(document.getElementById('new-cant').value) || 1,
+            costo: parseFloat(document.getElementById('new-costo').value) || 0
+        });
+        document.getElementById('new-desc').value = "";
+        recalc();
+    }
+
+    function recalc() {
+        const vHE = parseFloat(document.getElementById('cfg-he').value);
+        const mMat = 1 + (parseFloat(document.getElementById('cfg-m-mat').value)/100);
+        const mSub = 1 + (parseFloat(document.getElementById('cfg-m-sub').value)/100);
+        const pGG = parseFloat(document.getElementById('cfg-gg').value)/100;
+        const pIMP = parseFloat(document.getElementById('cfg-imp').value)/100;
+        const pUTIL = parseFloat(document.getElementById('cfg-util').value)/100;
+
+        let costoDirecto = vHE;
+        const tbody = document.getElementById('lista-items');
+        tbody.innerHTML = `<tr><td>Cargo base por atención técnica (1 HE)</td><td style="text-align:center">1</td><td style="text-align:center">HE</td><td style="text-align:right">${fmt.format(vHE)}</td></tr>`;
+
+        items.forEach((item, i) => {
+            let total = 0, unid = "Unid.";
+            if(item.tipo === 'mo') { total = item.cant * vHE; unid = "HE"; }
+            else if(item.tipo === 'mat') { total = item.cant * (item.costo * mMat); }
+            else { total = item.cant * (item.costo * mSub); unid = "Gl."; }
+            
+            costoDirecto += total;
+            tbody.innerHTML += `<tr><td>${item.desc} <span class="no-print" onclick="items.splice(${i},1);recalc()" style="color:red;cursor:pointer;font-size:10px;">[x]</span></td><td style="text-align:center">${item.cant}</td><td style="text-align:center">${unid}</td><td style="text-align:right">${fmt.format(total)}</td></tr>`;
+        });
+
+        const gg = costoDirecto * pGG;
+        const imp = costoDirecto * pIMP;
+        const util = costoDirecto * pUTIL;
+        const neto = costoDirecto + gg + imp + util;
+
+        document.getElementById('res-cd').innerText = fmt.format(costoDirecto);
+        document.getElementById('res-gg').innerText = fmt.format(gg);
+        document.getElementById('res-imp').innerText = fmt.format(imp);
+        document.getElementById('res-util').innerText = fmt.format(util);
+        document.getElementById('res-neto').innerText = fmt.format(neto);
+        document.getElementById('res-iva').innerText = fmt.format(neto * 0.19);
+        document.getElementById('res-total').innerText = fmt.format(neto * 1.19);
+    }
+
+    function togglePreview() {
+        document.body.classList.toggle('preview-mode');
+    }
+
+    window.onload = () => { sync(); recalc(); };
+</script>
+</body>
+</html>
