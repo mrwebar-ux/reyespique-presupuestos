@@ -1,0 +1,16 @@
+{
+  "name": "sistema-presupuestacion-reyes-pique-drive",
+  "version": "3.4.2",
+  "description": "Sistema Web SPA de Presupuestacion con resumen economico compacto y condiciones en 2 columnas",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "sql.js": "^1.10.3"
+  }
+}
